@@ -1,0 +1,58 @@
+#######################################
+# Syntax Coloring Map For DFRobot_A111
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+DFRobot_A111	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+begin	KEYWORD2
+refreshBasicInfo	KEYWORD2
+refreshMeasurementData	KEYWORD2
+refreshMeasurementConfig	KEYWORD2
+setADDR	KEYWORD2
+setBaudrateMode	KEYWORD2
+setCheckbitStopbit	KEYWORD2
+setAllMeasurementParameters	KEYWORD2
+restoreFactorySetting	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+eBaudrate2400	LITERAL1
+eBaudrate4800	LITERAL1
+eBaudrate9600	LITERAL1
+eBaudrate14400	LITERAL1
+eBaudrate19200	LITERAL1
+eBaudrate38400	LITERAL1
+eBaudrate57600	LITERAL1
+eBaudrate115200	LITERAL1
+eBaudrate_1000000	LITERAL1
+eCheckBitNone	LITERAL1
+eCheckBitEven	LITERAL1
+eCheckBitOdd	LITERAL1
+eStopBit1	LITERAL1
+eStopBit2	LITERAL1
+dataBuf	LITERAL1
+basicInfo	LITERAL1
+measurementConfig	LITERAL1
+PID	LITERAL1
+VID	LITERAL1
+modbusAddr	LITERAL1
+baudrate	LITERAL1
+checkbit	LITERAL1
+stopbit	LITERAL1
+versions	LITERAL1
+startPosition	LITERAL1
+stopPosition	LITERAL1
+initialThreshold	LITERAL1
+endThreshold	LITERAL1
+moduleSensitivity	LITERAL1
+comparisonOffset	LITERAL1
