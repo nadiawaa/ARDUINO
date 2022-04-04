@@ -1,6 +1,6 @@
 /*
   Master Lora Node
-  https://www.electroniclinic.com/
+  myIpond
 
 */
 
@@ -8,8 +8,8 @@
 #include <WiFi.h>
 
 #define FIREBASE_HOST "my-i-pond-default-rtdb.asia-southeast1.firebasedatabase.app"
-#define WIFI_SSID "Helloworld" // Change the name of your WIFI
-#define WIFI_PASSWORD "tahukukus" // Change the password of your WIFI
+#define WIFI_SSID "Helloworld"
+#define WIFI_PASSWORD "tahukukus"
 #define FIREBASE_Authorization_key "VqaLWbyEY9nEly5jyO3NZjAotLkAXHMfmRzXN0b5"
 
 //Libraries for LoRa
@@ -29,17 +29,14 @@
 #define RST 14
 #define DIO0 26
 
-//433E6 for Asia
-//866E6 for Europe
-//915E6 for North America
 #define BAND 915E6
 
 //OLED pins
 #define OLED_SDA 4
 #define OLED_SCL 15 
 #define OLED_RST 16
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+#define SCREEN_WIDTH 128      // OLED display width, in pixels
+#define SCREEN_HEIGHT 64      // OLED display height, in pixels
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
  
@@ -48,9 +45,9 @@ byte Node1 = 0xBB;
 byte Node2 = 0xCC; 
 
 String SenderNode = "";
-String outgoing;              // outgoing message
+String outgoing;             // outgoing message
 
-byte msgCount = 0;            // count of outgoing messages
+byte msgCount = 0;           // count of outgoing messages
 
 // Tracks the time since last event fired
 unsigned long previousMillis=0;
@@ -63,14 +60,15 @@ int Secs = 0;
 FirebaseData firebaseData;
 FirebaseJson json;
 
+int sensorsuhu = 0;
+int sensorph = 0;
 
 void setup() {
  //initialize Serial Monitor
   Serial.begin(9600);
   WiFi.begin (WIFI_SSID, WIFI_PASSWORD);
-   Serial.print("Connecting...");
-  while (WiFi.status() != WL_CONNECTED)
-  {
+  Serial.print("Connecting...");
+  while (WiFi.status() != WL_CONNECTED){
     Serial.print(".");
     delay(300);
   }
@@ -79,7 +77,6 @@ void setup() {
   Serial.println(WiFi.localIP());
   Serial.println();
   Firebase.begin(FIREBASE_HOST,FIREBASE_Authorization_key);
-  
   
   //reset OLED display via software
   pinMode(OLED_RST, OUTPUT);
@@ -100,7 +97,7 @@ void setup() {
   display.setCursor(0,0);
   display.print("LORA RECEIVER ");
   display.display();
-
+  
   Serial.println("LoRa Receiver Test");
   
   //SPI LoRa pins
@@ -119,44 +116,33 @@ void setup() {
 }
 
 void loop() {
-
-
-currentMillis = millis();
-   currentsecs = currentMillis / 1000; 
-    if ((unsigned long)(currentsecs - previoussecs) >= interval) {
-     Secs = Secs + 1;
-     //Serial.println(Secs);
-     if ( Secs >= 21 )
-    {
-      Secs = 0; 
-    }
-    if ( (Secs >= 1) && (Secs <= 10) )
-    {
-     
-    String message = "34"; 
-    sendMessage(message,MasterNode, Node1);
-    }
-
-        if ( (Secs >= 11 ) && (Secs <= 20))
-    {
-     
-    String message = "55"; 
-    sendMessage(message,MasterNode, Node2);
-    }
-    
-   previoussecs = currentsecs;
-    }
+  currentMillis = millis();
+     currentsecs = currentMillis / 1000; 
+      if ((unsigned long)(currentsecs - previoussecs) >= interval) {
+        Secs = Secs + 1;
+        //Serial.println(Secs);
+        if ( Secs >= 21 ) {
+          Secs = 0; 
+        }
+        if ( (Secs >= 1) && (Secs <= 10)) {
+          String message = "34"; 
+          sendMessage(message,MasterNode, Node1);
+        }
+        if ( (Secs >= 11 ) && (Secs <= 20)) {
+          String message = "55"; 
+          sendMessage(message,MasterNode, Node2);
+        }
+        previoussecs = currentsecs;
+      }
 
   // parse for a packet, and call onReceive with the result:
-  onReceive(LoRa.parsePacket());
-    
-  }
-
+  onReceive(LoRa.parsePacket());  
+}
 
 void sendMessage(String outgoing, byte MasterNode, byte otherNode) {
   LoRa.beginPacket();                   // start packet
-  LoRa.write(otherNode);              // add destination address
-  LoRa.write(MasterNode);             // add sender address
+  LoRa.write(otherNode);                // add destination address
+  LoRa.write(MasterNode);               // add sender address
   LoRa.write(msgCount);                 // add message ID
   LoRa.write(outgoing.length());        // add payload length
   LoRa.print(outgoing);                 // add payload
@@ -171,9 +157,9 @@ void onReceive(int packetSize) {
   int recipient = LoRa.read();          // recipient address
   byte sender = LoRa.read();            // sender address
   if( sender == 0XBB )
-  SenderNode = "Node1:";
+    SenderNode = "Node1:";
   if( sender == 0XCC )
-  SenderNode = "Node2:";
+    SenderNode = "Node2:";
   byte incomingMsgId = LoRa.read();     // incoming msg ID
   byte incomingLength = LoRa.read();    // incoming msg length
 
@@ -184,47 +170,55 @@ void onReceive(int packetSize) {
   }
 
   if (incomingLength != incoming.length()) {   // check length for error
-    //Serial.println("error: message length does not match length");
-    ;
+    Serial.println("error: message length does not match length");
     return;                             // skip rest of function
   }
 
   // if the recipient isn't this device or broadcast,
   if (recipient != Node1 && recipient != MasterNode) {
-   // Serial.println("This message is not for me.");
-    ;
+    Serial.println("This message is not for me.");
     return;                             // skip rest of function
   }
 
-  // if message is for this device, or broadcast, print details:
-  //Serial.println("Received from: 0x" + String(sender, HEX));
-  //Serial.println("Sent to: 0x" + String(recipient, HEX));
-  //Serial.println("Message ID: " + String(incomingMsgId));
- // Serial.println("Message length: " + String(incomingLength));
- // Serial.println("Message: " + incoming);
-  //Serial.println("RSSI: " + String(LoRa.packetRssi()));
- // Serial.println("Snr: " + String(LoRa.packetSnr()));
- // Serial.println();
-
-    //clear display
+  //clear display
   display.clearDisplay();
-
-  display.setTextSize(2);
+  display.setTextSize(1);
   display.setCursor(0,0);
   display.print(SenderNode);
- if( sender == 0XBB )
- { 
-  display.setCursor(0, 20);
-  display.print(incoming);
-  Firebase.setString(firebaseData, "dev1/NAME", incoming);
- }
 
-  if( sender == 0XCC )
- { 
-  display.setCursor(0, 30);
-  display.print(incoming + "C");
-  Firebase.setString(firebaseData, "dev2/TEMPERATURE", incoming);
- }
+  String q = getValue(incoming,',',0);
+  String r = getValue(incoming,',',1);
+  
+  if( sender == 0XBB ){ 
+      display.setCursor(0, 20);
+      display.print(incoming);
+      Firebase.setString(firebaseData, "dev1/NAME", incoming);
+  }
+  if( sender == 0XCC ){ 
+    
+    display.setCursor(0, 30);
+    display.print("suhu: "+ q +" C");
+    Firebase.setString(firebaseData, "dev2/TEMPERATURE", q);
+    display.setCursor(0, 40);
+    display.print("pH: "+ r);
+    Firebase.setString(firebaseData, "dev2/PH", r);
+  }
 
-display.display(); 
+  display.display(); 
+}
+
+String getValue(String data, char separator, int index)
+{
+    int found = 0;
+    int strIndex[] = { 0, -1 };
+    int maxIndex = data.length() - 1;
+ 
+    for (int i = 0; i <= maxIndex && found <= index; i++) {
+        if (data.charAt(i) == separator || i == maxIndex) {
+            found++;
+            strIndex[0] = strIndex[1] + 1;
+            strIndex[1] = (i == maxIndex) ? i+1 : i;
+        }
+    }
+    return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
 }

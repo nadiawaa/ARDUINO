@@ -152,17 +152,14 @@ void onReceive(int packetSize) {
   }
     Serial.println(incoming);
     int Val = incoming.toInt();
+    String hello;
     if(Val == 34)
     { 
-     Hello();
      LoRa.print(counter);
+     hello = LoRa.print("hello nadia");
      LoRa.endPacket();
      sendMessage(hello,MasterNode,Node1);
      delay(100);
     }
   
-}
-void Hello()
-{
-  hello = LoRa.print("hello nadia");
 }

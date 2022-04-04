@@ -1,7 +1,6 @@
 /*
   Lora Node2 
-  https://www.electroniclinic.com/
-
+  myIpond
 */
 //Libraries for LoRa
 #include <SPI.h>
@@ -16,7 +15,6 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-// Data wire is plugged into pin 2 on the Arduino 
 #define ONE_WIRE_BUS 13 
 
 //define the pins used by the LoRa transceiver module
@@ -27,17 +25,23 @@
 #define RST 14
 #define DIO0 26
 
-//433E6 for Asia
-//866E6 for Europe
-//915E6 for North America
 #define BAND 915E6
 
 //OLED pins
 #define OLED_SDA 4
 #define OLED_SCL 15 
 #define OLED_RST 16
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+#define SCREEN_WIDTH 128        // OLED display width, in pixels
+#define SCREEN_HEIGHT 64        // OLED display height, in pixels
+
+
+#define SensorPin 35            //pH meter Analog output to Arduino Analog Input 0
+#define Offset 0.00             //deviation compensate
+#define samplingInterval 20
+#define printInterval 800
+#define ArrayLenth  40          //times of collection
+int pHArray[ArrayLenth];        //Store the average value of the sensor feedback
+int pHArrayIndex=0;
 
 
 // Setup a oneWire instance to communicate with any OneWire devices  
@@ -52,8 +56,6 @@ DallasTemperature sensors(&oneWire);
 int counter = 0;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
- float Celcius=0;
- float Fahrenheit=0;
 
 String outgoing;              // outgoing message
 
@@ -61,10 +63,14 @@ byte msgCount = 0;            // count of outgoing messages
 byte MasterNode = 0xFF;     
 byte Node2 = 0xCC;
 
+int sensorsuhu = 0;
+int sensorph = 0;
+
 
 void setup() {
- //initialize Serial Monitor
+  //initialize Serial Monitor
   Serial.begin(9600);
+  Serial.println("pH meter experiment!");
 
   //reset OLED display via software
   pinMode(OLED_RST, OUTPUT);
@@ -111,6 +117,43 @@ void loop() {
   // parse for a packet, and call onReceive with the result:
   onReceive(LoRa.parsePacket());
 
+  //sensor suhu_____________________________________
+  sensors.requestTemperatures(); 
+  Serial.print("Temperature is: "); 
+  Serial.print(sensors.getTempCByIndex(0));
+  delay(500);
+
+
+  //sensor ph_____________________________________
+  static unsigned long samplingTime = millis();
+  static unsigned long printTime = millis();
+  static float pHValue,pHValues,voltage;
+  if(millis()-samplingTime > samplingInterval)
+  {
+      pHArray[pHArrayIndex++]=analogRead(SensorPin);
+      if(pHArrayIndex==ArrayLenth)pHArrayIndex=0;
+      voltage = avergearray(pHArray, ArrayLenth)*3.3/1024;
+      pHValue = 3.5*voltage+Offset;
+      pHValues = pHValue-9;
+      samplingTime=millis();
+  }
+  if(millis() - printTime > printInterval)   //Every 800 milliseconds, print a numerical, convert the state of the LED indicator
+  {
+      Serial.print("Voltage:");
+      Serial.print(voltage,2);
+      Serial.print("    pH value: ");
+      Serial.println(pHValues ,2);
+      printTime=millis();
+  }
+  Serial.println("____________________________________________________________________");
+  
+  //loop________________________________________________
+  sensorsuhu = sensors.getTempCByIndex(0);
+  delay(10);
+  sensorph = pHValues;
+  delay(10);
+  
+  //display OLED_______________________________________
   display.clearDisplay();
   display.setCursor(0,0);
   display.println("LORA SENDER 2");
@@ -121,14 +164,16 @@ void loop() {
   display.setCursor(50,30);
   display.print(counter);  
   display.setCursor(0,40);
-  display.print(sensors.getTempCByIndex(0));     
+  display.print(sensorsuhu);     
+  display.setCursor(0,50);
+  display.print(sensorph); 
   display.display();
 }
 
 void sendMessage(String outgoing, byte MasterNode, byte otherNode) {
   LoRa.beginPacket();                   // start packet
-  LoRa.write(MasterNode);              // add destination address
-  LoRa.write(Node2);             // add sender address
+  LoRa.write(MasterNode);               // add destination address
+  LoRa.write(Node2);                    // add sender address
   LoRa.write(msgCount);                 // add message ID
   LoRa.write(outgoing.length());        // add payload length
   LoRa.print(outgoing);                 // add payload
@@ -152,44 +197,64 @@ void onReceive(int packetSize) {
   }
 
   if (incomingLength != incoming.length()) {   // check length for error
-   // Serial.println("error: message length does not match length");
-   ;
-    return;                             // skip rest of function
+    Serial.println("error: message length does not match length");
+    return;
   }
 
   // if the recipient isn't this device or broadcast,
   if (recipient != Node2 && recipient != MasterNode) {
-    //Serial.println("This message is not for me.");
-    ;
-    return;                             // skip rest of function
+    Serial.println("This message is not for me.");
+    return;
   }
     Serial.println(incoming);
     int Val = incoming.toInt();
     if(Val == 55)
     { 
-    myTemp(); 
-    String message = String(Celcius); 
+    String node2message; 
     LoRa.print(counter);
-    LoRa.print(sensors.getTempCByIndex(0));
-    sendMessage(message,MasterNode,Node2);
+    node2message = node2message + sensorsuhu + "," + sensorph;
+    sendMessage(node2message,MasterNode,Node2);
     delay(100);
     }
   
 }
 
-void myTemp()
-{
-  sensors.requestTemperatures(); 
-  Celcius=sensors.getTempCByIndex(0);
-  Fahrenheit=sensors.toFahrenheit(Celcius);
-  Serial.print("Temperature is: "); 
-  Serial.print(sensors.getTempCByIndex(0));
-  delay(1000);
-
-  if ( Celcius > 40 )
-  {
-    String message = "Warning.."; 
-    sendMessage(message,MasterNode,Node2);
+double avergearray(int* arr, int number){
+  int i;
+  int max,min;
+  double avg;
+  long amount=0;
+  if(number<=0){
+    Serial.println("Error number for the array to avraging!/n");
+    return 0;
   }
-
+  if(number<5){   //less than 5, calculated directly statistics
+    for(i=0;i<number;i++){
+      amount+=arr[i];
+    }
+    avg = amount/number;
+    return avg;
+  }else{
+    if(arr[0]<arr[1]){
+      min = arr[0];max=arr[1];
+    }
+    else{
+      min=arr[1];max=arr[0];
+    }
+    for(i=2;i<number;i++){
+      if(arr[i]<min){
+        amount+=min;        //arr<min
+        min=arr[i];
+      }else {
+        if(arr[i]>max){
+          amount+=max;     //arr>max
+          max=arr[i];
+        }else{
+          amount+=arr[i];  //min<=arr<=max
+        }
+      }//if
+    }//for
+    avg = (double)amount/(number-2);
+  }//if
+  return avg;
 }
