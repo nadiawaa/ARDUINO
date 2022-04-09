@@ -1,7 +1,8 @@
 /*
-  Lora Node2 
+  Lora Node3 
   myIpond
 */
+
 //Libraries for LoRa
 #include <SPI.h>
 #include <LoRa.h>
@@ -56,7 +57,7 @@ String outgoing;              // outgoing message
 
 byte msgCount = 0;            // count of outgoing messages
 byte MasterNode = 0xFF;     
-byte Node2 = 0xCC;
+byte Node3 = 0xDD;
 
 float sensorsuhu = 0;
 float sensorph = 0;
@@ -84,10 +85,10 @@ void setup() {
   display.setTextColor(WHITE);
   display.setTextSize(1);
   display.setCursor(0,0);
-  display.print("LORA SENDER 2");
+  display.print("LORA SENDER 3");
   display.display();
   
-  Serial.println("LoRa Sender Test 2");
+  Serial.println("LoRa Sender Test 3");
 
   //SPI LoRa pins
   SPI.begin(SCK, MISO, MOSI, SS);
@@ -150,6 +151,7 @@ void loop() {
   Serial.println("____________________________________________________________________");
   delay(1000);
   
+  
   //loop________________________________________________
   sensorsuhu = sensors.getTempCByIndex(0),2;
   delay(10);
@@ -159,7 +161,7 @@ void loop() {
   //display OLED_______________________________________
   display.clearDisplay();
   display.setCursor(0,0);
-  display.println("LORA SENDER 2");
+  display.println("LORA SENDER 3");
   display.setCursor(0,20);
   display.print("LoRa packet sent.");
   display.setCursor(0,30);
@@ -167,8 +169,12 @@ void loop() {
   display.setCursor(50,30);
   display.print(msgCount);  
   display.setCursor(0,40);
+  display.print("Suhu:");
+  display.setCursor(50,40);
   display.print(sensorsuhu);     
   display.setCursor(0,50);
+  display.print("pH:");
+  display.setCursor(50,50);
   display.print(sensorph); 
   display.display();
 }
@@ -176,7 +182,7 @@ void loop() {
 void sendMessage(String outgoing, byte MasterNode, byte otherNode) {
   LoRa.beginPacket();                   // start packet
   LoRa.write(MasterNode);               // add destination address
-  LoRa.write(Node2);                    // add sender address
+  LoRa.write(Node3);                    // add sender address
   LoRa.write(msgCount);                 // add message ID
   LoRa.write(outgoing.length());        // add payload length
   LoRa.print(outgoing);                 // add payload
@@ -205,19 +211,19 @@ void onReceive(int packetSize) {
   }
 
   // if the recipient isn't this device or broadcast,
-  if (recipient != Node2 && recipient != MasterNode) {
+  if (recipient != Node3 && recipient != MasterNode) {
     Serial.println("This message is not for me.");
     return;
   }
     Serial.print("incoming: ");
     Serial.println(incoming);
     int Val = incoming.toInt();
-    if(Val == 55)
+    if(Val == 75)
     { 
-    String node2message; 
+    String node3message; 
     LoRa.print(msgCount);
-    node2message = node2message + sensorsuhu + "," + sensorph;
-    sendMessage(node2message,MasterNode,Node2);
+    node3message = node3message + sensorsuhu + "," + sensorph;
+    sendMessage(node3message,MasterNode,Node3);
     delay(100);
     }
   

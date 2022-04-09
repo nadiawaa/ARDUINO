@@ -1,97 +1,84 @@
-#include <OneWire.h>
-#include <DallasTemperature.h>
-#define DS18B20PIN 13
+//#include <OneWire.h>
+//#include <DallasTemperature.h>
+//#define DS18B20PIN 13
+//
+///* Create an instance of OneWire */
+//OneWire oneWire(DS18B20PIN);
+//
+//DallasTemperature sensors(&oneWire);
+//
+//
+//#define SensorPin 35            //pH meter Analog output to Arduino Analog Input 0
+//#define Offset 0.00            //deviation compensate
+//#define samplingInterval 20
+//#define printInterval 800
+//#define ArrayLenth  40    //times of collection
+//int pHArray[ArrayLenth];   //Store the average value of the sensor feedback
+//int pHArrayIndex=0;
+//void setup(void)
+//{
+//  Serial.begin(9600);
+//  Serial.println("pH meter experiment!");    //Test the serial monitor
+//}
+//void loop(void)
+//{
+//
+////  Sensor Suhu___________________________________________________________________________
+//  
+//  sensors.requestTemperatures(); 
+//  float tempinC = sensors.getTempCByIndex(0);
+//  Serial.print("Temperature = ");
+//  Serial.print(tempinC);
+//  Serial.println("ºC");
+//  delay(1000);
+//}
 
-/* Create an instance of OneWire */
-OneWire oneWire(DS18B20PIN);
 
-DallasTemperature sensors(&oneWire);
+/*
+# This sample codes is for testing the pH meter V1.0.
+ # Editor : YouYou
+ # Date   : 2013.10.12
+ # Ver    : 0.1
+ # Product: pH meter
+ # SKU    : SEN0161
+*/
 
+#define SensorPin 35          //pH meter Analog output to Arduino Analog Input 0
+unsigned long int avgValue;  //Store the average value of the sensor feedback
+float b;
+int buf[10],temp;
 
-#define SensorPin 35            //pH meter Analog output to Arduino Analog Input 0
-#define Offset 0.00            //deviation compensate
-#define samplingInterval 20
-#define printInterval 800
-#define ArrayLenth  40    //times of collection
-int pHArray[ArrayLenth];   //Store the average value of the sensor feedback
-int pHArrayIndex=0;
-void setup(void)
+void setup()
 {
-  Serial.begin(9600);
-  Serial.println("pH meter experiment!");    //Test the serial monitor
+  
+  Serial.begin(9600);  
+  Serial.println("Ready");    //Test the serial monitor
 }
-void loop(void)
+void loop()
 {
-
-  //Sensor Suhu___________________________________________________________________________
-  
-  sensors.requestTemperatures(); 
-  float tempinC = sensors.getTempCByIndex(0);
-  Serial.print("Temperature = ");
-  Serial.print(tempinC);
-  Serial.println("ºC");
-  delay(1000);
-
-  //Sensor pH_____________________________________________________________________________
-  
-  static unsigned long samplingTime = millis();
-  static unsigned long printTime = millis();
-  static float pHValue,pHValues,voltage;
-  if(millis()-samplingTime > samplingInterval)
+  for(int i=0;i<10;i++)       //Get 10 sample value from the sensor for smooth the value
+  { 
+    buf[i]=analogRead(SensorPin);
+    delay(10);
+  }
+  for(int i=0;i<9;i++)        //sort the analog from small to large
   {
-      pHArray[pHArrayIndex++]=analogRead(SensorPin);
-      if(pHArrayIndex==ArrayLenth)pHArrayIndex=0;
-      voltage = avergearray(pHArray, ArrayLenth)*3.3/1024;
-      pHValue = 3.5*voltage+Offset;
-      pHValues = pHValue-9;
-      samplingTime=millis();
-  }
-  if(millis() - printTime > printInterval)   //Every 800 milliseconds, print a numerical, convert the state of the LED indicator
-  {
-    Serial.print("Voltage:");
-        Serial.print(voltage,2);
-        Serial.print("    pH value: ");
-    Serial.println(pHValues ,2);
-        printTime=millis();
-  }
-     Serial.println("____________________________________________________________________");
-}
-double avergearray(int* arr, int number){
-  int i;
-  int max,min;
-  double avg;
-  long amount=0;
-  if(number<=0){
-    Serial.println("Error number for the array to avraging!/n");
-    return 0;
-  }
-  if(number<5){   //less than 5, calculated directly statistics
-    for(i=0;i<number;i++){
-      amount+=arr[i];
+    for(int j=i+1;j<10;j++)
+    {
+      if(buf[i]>buf[j])
+      {
+        temp=buf[i];
+        buf[i]=buf[j];
+        buf[j]=temp;
+      }
     }
-    avg = amount/number;
-    return avg;
-  }else{
-    if(arr[0]<arr[1]){
-      min = arr[0];max=arr[1];
-    }
-    else{
-      min=arr[1];max=arr[0];
-    }
-    for(i=2;i<number;i++){
-      if(arr[i]<min){
-        amount+=min;        //arr<min
-        min=arr[i];
-      }else {
-        if(arr[i]>max){
-          amount+=max;    //arr>max
-          max=arr[i];
-        }else{
-          amount+=arr[i]; //min<=arr<=max
-        }
-      }//if
-    }//for
-    avg = (double)amount/(number-2);
-  }//if
-  return avg;
+  }
+  avgValue=0;
+  for(int i=2;i<8;i++)                      //take the average value of 6 center sample
+    avgValue+=buf[i];
+  float phValue=(float)avgValue*5.0/6024/6; //convert the analog into millivolt
+  phValue=3.5*phValue;                      //convert the millivolt into pH value
+  Serial.print("    pH:");  
+  Serial.print(phValue,2);
+  Serial.println(" ");
 }

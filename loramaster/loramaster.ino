@@ -43,6 +43,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 byte MasterNode = 0xFF;     
 byte Node1 = 0xBB;
 byte Node2 = 0xCC; 
+byte Node3 = 0xDD;
 
 String SenderNode = "";
 String outgoing;             // outgoing message
@@ -121,16 +122,20 @@ void loop() {
       if ((unsigned long)(currentsecs - previoussecs) >= interval) {
         Secs = Secs + 1;
         //Serial.println(Secs);
-        if ( Secs >= 21 ) {
+        if ( Secs >= 16 ) {
           Secs = 0; 
         }
-        if ( (Secs >= 1) && (Secs <= 10)) {
+        if ( (Secs >= 1) && (Secs <= 5)) {
           String message = "34"; 
           sendMessage(message,MasterNode, Node1);
         }
-        if ( (Secs >= 11 ) && (Secs <= 20)) {
+        if ( (Secs >= 6 ) && (Secs <= 10)) {
           String message = "55"; 
           sendMessage(message,MasterNode, Node2);
+        }
+        if ( (Secs >= 11 ) && (Secs <= 15)) {
+          String message = "75"; 
+          sendMessage(message,MasterNode, Node3);
         }
         previoussecs = currentsecs;
       }
@@ -160,6 +165,8 @@ void onReceive(int packetSize) {
     SenderNode = "Node1:";
   if( sender == 0XCC )
     SenderNode = "Node2:";
+  if( sender == 0XDD )
+    SenderNode = "Node3:";
   byte incomingMsgId = LoRa.read();     // incoming msg ID
   byte incomingLength = LoRa.read();    // incoming msg length
 
@@ -185,23 +192,41 @@ void onReceive(int packetSize) {
   display.setTextSize(1);
   display.setCursor(0,0);
   display.print(SenderNode);
+  display.setCursor(0,10);
+  display.print(msgCount);
 
   String q = getValue(incoming,',',0);
   String r = getValue(incoming,',',1);
   
   if( sender == 0XBB ){ 
-      display.setCursor(0, 20);
-      display.print(incoming);
-      Firebase.setString(firebaseData, "dev1/NAME", incoming);
-  }
-  if( sender == 0XCC ){ 
-    
     display.setCursor(0, 30);
     display.print("suhu: "+ q +" C");
+    Serial.print("suhu: "+ q +" C");
+    Firebase.setString(firebaseData, "dev1/TEMPERATURE", q);
+    display.setCursor(0, 40);
+    display.print("pH: "+ r);
+    Serial.print("pH: "+ r);
+    Firebase.setString(firebaseData, "dev1/PH", r);
+  }
+  if( sender == 0XCC ){ 
+    display.setCursor(0, 30);
+    display.print("suhu: "+ q +" C");
+    Serial.print("suhu: "+ q +" C");
     Firebase.setString(firebaseData, "dev2/TEMPERATURE", q);
     display.setCursor(0, 40);
     display.print("pH: "+ r);
+    Serial.print("pH: "+ r);
     Firebase.setString(firebaseData, "dev2/PH", r);
+  }
+  if( sender == 0XDD ){ 
+    display.setCursor(0, 30);
+    display.print("suhu: "+ q +" C");
+    Serial.println("suhu: "+ q +" C");
+    Firebase.setString(firebaseData, "dev3/TEMPERATURE", q);
+    display.setCursor(0, 40);
+    display.print("pH: "+ r);
+    Serial.print("pH: "+ r);
+    Firebase.setString(firebaseData, "dev3/PH", r);
   }
 
   display.display(); 
