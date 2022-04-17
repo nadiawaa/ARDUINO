@@ -23,7 +23,7 @@
 //433E6 for Asia
 //866E6 for Europe
 //915E6 for North America
-#define BAND 915E6
+#define BAND 866E6
 
 //OLED pins
 #define OLED_SDA 4
@@ -38,7 +38,7 @@ String LoRaData;
 
 void setup() { 
   //initialize Serial Monitor
-  Serial.begin(9600);
+  Serial.begin(115200);
   
   //reset OLED display via software
   pinMode(OLED_RST, OUTPUT);

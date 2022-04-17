@@ -41,6 +41,13 @@ float b;
 int buf[10],temp;
 
 
+
+int Turbidity_Sensor_Pin = 34;
+float Turbidity_Sensor_Voltage;
+int samples = 600;
+float ntu;
+
+
 // Setup a oneWire instance to communicate with any OneWire devices  
 // (not just Maxim/Dallas temperature ICs) 
 OneWire oneWire(ONE_WIRE_BUS); 
@@ -60,6 +67,7 @@ byte Node2 = 0xCC;
 
 float sensorsuhu = 0;
 float sensorph = 0;
+float sensortbd = 0;
 
 
 void setup() {
@@ -72,6 +80,8 @@ void setup() {
   digitalWrite(OLED_RST, LOW);
   delay(20);
   digitalWrite(OLED_RST, HIGH);
+
+  pinMode(Turbidity_Sensor_Pin, INPUT);
 
   //initialize OLED
   Wire.begin(OLED_SDA, OLED_SCL);
@@ -146,7 +156,29 @@ void loop() {
   Serial.print(phValue,2);
   Serial.println(" ");
 
+  //sensor turbidity_______________________________________________
+  Turbidity_Sensor_Voltage = 0;
+    for(int i=0; i<samples; i++)
+    {
+        Turbidity_Sensor_Voltage += ((float)analogRead(Turbidity_Sensor_Pin)/4880)*5;
+    }
+    
+    Turbidity_Sensor_Voltage = Turbidity_Sensor_Voltage/samples; 
+    Turbidity_Sensor_Voltage = round_to_dp(Turbidity_Sensor_Voltage,2);
+    if(Turbidity_Sensor_Voltage < 2.5){
+      ntu = 3000;
+    }else{
+      ntu = -1120.4*sq(Turbidity_Sensor_Voltage)+ 5742.3*Turbidity_Sensor_Voltage - 4352.9; 
+    }
 
+    Serial.print(Turbidity_Sensor_Voltage);
+    Serial.println(" V");
+ 
+    Serial.print(ntu,3);
+    Serial.println(" NTU");
+    delay(1000);
+
+  
   Serial.println("____________________________________________________________________");
   delay(1000);
   
@@ -155,21 +187,28 @@ void loop() {
   delay(10);
   sensorph = ("%.2f", phValue);
   delay(10);
+  sensortbd = ("%.2f", ntu);
+  delay(10);
   
   //display OLED_______________________________________
   display.clearDisplay();
   display.setCursor(0,0);
   display.println("LORA SENDER 2");
-  display.setCursor(0,20);
+  display.setCursor(0,10);
   display.print("LoRa packet sent.");
-  display.setCursor(0,30);
+  display.setCursor(0,20);
   display.print("Counter:");
-  display.setCursor(50,30);
+  display.setCursor(50,20);
   display.print(msgCount);  
-  display.setCursor(0,40);
+  display.setCursor(0,30);
+  display.print("suhu:");
   display.print(sensorsuhu);     
-  display.setCursor(0,50);
+  display.setCursor(0,40);
+  display.print("pH:");
   display.print(sensorph); 
+  display.setCursor(0,50);
+  display.print("tbd:");
+  display.print(sensortbd); 
   display.display();
 }
 
@@ -216,9 +255,16 @@ void onReceive(int packetSize) {
     { 
     String node2message; 
     LoRa.print(msgCount);
-    node2message = node2message + sensorsuhu + "," + sensorph;
+    node2message = node2message + sensorsuhu + "," + sensorph + "," + sensortbd;
     sendMessage(node2message,MasterNode,Node2);
     delay(100);
     }
   
+}
+
+float round_to_dp( float in_value, int decimal_place )
+{
+  float multiplier = powf( 10.0f, decimal_place );
+  in_value = roundf( in_value * multiplier ) / multiplier;
+  return in_value;
 }

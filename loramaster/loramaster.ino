@@ -8,8 +8,8 @@
 #include <WiFi.h>
 
 #define FIREBASE_HOST "my-i-pond-default-rtdb.asia-southeast1.firebasedatabase.app"
-#define WIFI_SSID "Helloworld"
-#define WIFI_PASSWORD "tahukukus"
+#define WIFI_SSID "nadiacantik"
+#define WIFI_PASSWORD "nadiagemoy"
 #define FIREBASE_Authorization_key "VqaLWbyEY9nEly5jyO3NZjAotLkAXHMfmRzXN0b5"
 
 //Libraries for LoRa
