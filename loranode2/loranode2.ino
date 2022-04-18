@@ -1,7 +1,6 @@
  /*
   Lora Node1
-  https://www.electroniclinic.com/
-
+  myIpond
 */
 //Libraries for LoRa
 #include <SPI.h>
