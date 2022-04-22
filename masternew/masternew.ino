@@ -214,21 +214,21 @@ void onReceive(int packetSize) {
     display.print("RSSI:");
     display.print(rssi);
     Serial.print("RSSI: " + rssi);
-    display.setCursor(0, 30);
+    display.setCursor(0, 20);
     display.print("suhu: "+ q +" C");
     Serial.print("suhu: "+ q +" C");
     Firebase.setString(firebaseData, "dev1/TEMPERATURE", q);
-    display.setCursor(0, 40);
+    display.setCursor(0, 30);
     display.print("pH: "+ r);
     Serial.print("pH: "+ r);
     Firebase.setString(firebaseData, "dev1/PH", r);
-    display.setCursor(0, 50);
-    display.print("tbd: "+ s);
-    Serial.print("tbd: "+ s);
+    display.setCursor(0, 40);
+    display.print("tbd: " + s);
+    Serial.print("tbd: " + s);
     Firebase.setString(firebaseData, "dev1/TBD", s);
-    display.setCursor(0, 60);
-    display.print("count "+ t);
-    Serial.print("count "+ t);
+    display.setCursor(0, 50);
+    display.print("count " + t);
+    Serial.print("count " + t);
     Firebase.setString(firebaseData, "dev1/COUNT", t);
   }
   if( sender == 0XCC ){ 
@@ -241,8 +241,8 @@ void onReceive(int packetSize) {
     Serial.print("suhu: "+ q +" C");
     Firebase.setString(firebaseData, "dev2/TEMPERATURE", q);
     display.setCursor(0, 40);
-    display.print("pH: "+ r);
-    Serial.print("pH: "+ r);
+    display.print("pH: " + r);
+    Serial.print("pH: " + r);
     Firebase.setString(firebaseData, "dev2/PH", r);
     display.setCursor(0, 50);
     display.print("tbd: "+ s);
@@ -267,8 +267,8 @@ void onReceive(int packetSize) {
     Serial.print("pH: "+ r);
     Firebase.setString(firebaseData, "dev3/PH", r);
     display.setCursor(0, 50);
-    display.print("tbd: "+ s);
-    Serial.print("tbd: "+ s);
+    display.print("tbd: " + s);
+    Serial.print("tbd: " + s);
     Firebase.setString(firebaseData, "dev3/TBD", s);
     display.setCursor(0, 60);
     display.print("count "+ t);
