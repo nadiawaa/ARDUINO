@@ -1,7 +1,16 @@
 /*
-  Lora Node 2 
+  Lora Node 3 
   myIpond
 */
+
+#include <FirebaseESP32.h>
+#include <WiFi.h>
+
+#define FIREBASE_HOST "my-i-pond-default-rtdb.asia-southeast1.firebasedatabase.app"
+#define WIFI_SSID "Abhyasa"
+#define WIFI_PASSWORD "DRA012108"
+#define FIREBASE_Authorization_key "VqaLWbyEY9nEly5jyO3NZjAotLkAXHMfmRzXN0b5"
+
 //Libraries for LoRa
 #include <SPI.h>
 #include <LoRa.h>
@@ -51,14 +60,11 @@ float ntu;
 OneWire oneWire(SUHUPIN); 
 DallasTemperature sensors(&oneWire);
 
+FirebaseData firebaseData;
+FirebaseJson json;
+
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
-
-String outgoing;              // outgoing message
-
-byte msgCount = 0;            // count of outgoing messages
-byte MasterNode = 0xFF;     
-byte Node2 = 0xCC;
 
 float sensorsuhu = 0;
 float sensorph = 0;
@@ -68,6 +74,17 @@ float sensortbd = 0;
 void setup() {
   //initialize Serial Monitor
   Serial.begin(9600);
+  WiFi.begin (WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("Connecting...");
+  while (WiFi.status() != WL_CONNECTED){
+    Serial.print(".");
+    delay(300);
+  }
+  Serial.println();
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
+  Serial.println();
+  Firebase.begin(FIREBASE_HOST,FIREBASE_Authorization_key);
   
   //reset OLED display via software
   pinMode(OLED_RST, OUTPUT);
@@ -86,10 +103,10 @@ void setup() {
   display.setTextColor(WHITE);
   display.setTextSize(1);
   display.setCursor(0,0);
-  display.print("LORA SENDER 2");
+  display.print("LORA SENDER 3");
   display.display();
   
-  Serial.println("LoRa Sender 2");
+  Serial.println("LoRa Sender 3");
 
   //SPI LoRa pins
   SPI.begin(SCK, MISO, MOSI, SS);
@@ -108,13 +125,8 @@ void setup() {
 }
 
 void loop() {
-  Serial.print("Sending packet: ");
-  Serial.println(msgCount);
 
-  // parse for a packet, and call onReceive with the result:
-  onReceive(LoRa.parsePacket());
-
-  //sensor tbd
+  //sensor suhu
   sensors.requestTemperatures(); 
   Serial.print("Temperature is: "); 
   Serial.println(sensors.getTempCByIndex(0));
@@ -165,7 +177,7 @@ void loop() {
 
   Serial.print(Turbidity_Sensor_Voltage);
   Serial.println(" V");
-  Serial.print(ntu,2);
+  Serial.print(ntu,3);
   Serial.println(" NTU");
   delay(1000);
 
@@ -183,73 +195,23 @@ void loop() {
   //display OLED
   display.clearDisplay();
   display.setCursor(0,0);
-  display.println("LORA SENDER 2");
+  display.println("LORA SENDER 3");
   display.setCursor(0,10);
   display.print("LoRa packet sent.");
-  display.setCursor(0,20);
-  display.print("Counter:");
-  display.print(msgCount);  
+  display.setCursor(0,20); 
   display.setCursor(0,30);
   display.print("suhu:");
-  display.print(sensorsuhu);     
+  display.print(sensorsuhu);
+  Firebase.setString(firebaseData, "dev3/TEMPERATURE", sensorsuhu);     
   display.setCursor(0,40);
   display.print("pH:");
-  display.print(sensorph); 
+  display.print(sensorph);
+  Firebase.setString(firebaseData, "dev3/PH", sensorph); 
   display.setCursor(0,50);
   display.print("tbd:");
-  display.print(sensortbd); 
+  display.print(sensortbd);
+  Firebase.setString(firebaseData, "dev3/TBD", sensortbd); 
   display.display();
-}
-
-void sendMessage(String outgoing, byte MasterNode, byte otherNode) {
-  LoRa.beginPacket();                   // start packet
-  LoRa.write(MasterNode);               // add destination address
-  LoRa.write(Node2);                    // add sender address
-  LoRa.write(msgCount);                 // add message ID
-  LoRa.write(outgoing.length());        // add payload length
-  LoRa.print(outgoing);                 // add payload
-  LoRa.endPacket();                     // finish packet and send it
-  msgCount++;                           // increment message ID
-}
-
-void onReceive(int packetSize) {
-  if (packetSize == 0) return;          // if there's no packet, return
-
-  //read packet header bytes:
-  int recipient = LoRa.read();          // recipient address
-  byte sender = LoRa.read();            // sender address
-  byte incomingMsgId = LoRa.read();     // incoming msg ID
-  byte incomingLength = LoRa.read();    // incoming msg length
-
-  String incoming = "";
-
-  while (LoRa.available()) {
-    incoming += (char)LoRa.read();
-  }
-  
-  if (incomingLength != incoming.length()) {   // check length for error
-    Serial.println("error: message length does not match length");
-    return;
-  }
-
-  // if the recipient isn't this device or broadcast,
-  if (recipient != Node2 && recipient != MasterNode) {
-    Serial.println("This message is not for me.");
-    return;
-  }
-  
-  Serial.print("incoming: ");
-  Serial.println(incoming);
-  int Val = incoming.toInt();
-  if(Val == 55)
-  { 
-    String node2message; 
-    LoRa.print(msgCount);
-    node2message = node2message + sensorsuhu + "," + sensorph + "," + sensortbd + "," + msgCount;
-    sendMessage(node2message,MasterNode,Node2);
-    delay(100);
-  }
-  
 }
 
 float round_to_dp( float in_value, int decimal_place )

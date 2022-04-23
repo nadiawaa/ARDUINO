@@ -43,7 +43,6 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 byte MasterNode = 0xFF;     
 byte Node1 = 0xBB;
 byte Node2 = 0xCC; 
-byte Node3 = 0xDD;
 
 String SenderNode = "";
 String outgoing;             // outgoing message
@@ -125,7 +124,7 @@ void loop() {
       if ((unsigned long)(currentsecs - previoussecs) >= interval) {
         Secs = Secs + 1;
         //Serial.println(Secs);
-        if ( Secs >= 16 ) {
+        if ( Secs >= 11 ) {
           Secs = 0; 
         }
         if ((Secs >= 1) && (Secs <= 5)) {
@@ -135,10 +134,6 @@ void loop() {
         if ((Secs >= 6 ) && (Secs <= 10)) {
           String message = "55"; 
           sendMessage(message,MasterNode, Node2);
-        }
-        if ((Secs >= 11 ) && (Secs <= 15)) {
-          String message = "75"; 
-          sendMessage(message,MasterNode, Node3);
         }
         previoussecs = currentsecs;
       }
@@ -175,8 +170,6 @@ void onReceive(int packetSize) {
     SenderNode = "Node1:";
   if( sender == 0XCC )
     SenderNode = "Node2:";
-  if( sender == 0XDD )
-    SenderNode = "Node3:";
   byte incomingMsgId = LoRa.read();     // incoming msg ID
   byte incomingLength = LoRa.read();    // incoming msg length
 
@@ -254,29 +247,6 @@ void onReceive(int packetSize) {
     Serial.println("count "+ t);
     Firebase.setString(firebaseData, "dev2/COUNT", t);
   }
-  if( sender == 0XDD ){ 
-    Serial.println("node 3");
-    display.setCursor(50,10);
-    display.print("RSSI:" + rssi);
-    Serial.print("RSSI: " + rssi);
-    display.setCursor(0, 20);
-    display.print("suhu: "+ q +" C");
-    Serial.println("suhu: "+ q +" C");
-    Firebase.setString(firebaseData, "dev3/TEMPERATURE", q);
-    display.setCursor(0, 30);
-    display.print("pH: "+ r);
-    Serial.println("pH: "+ r);
-    Firebase.setString(firebaseData, "dev3/PH", r);
-    display.setCursor(0, 40);
-    display.print("tbd: " + s);
-    Serial.println("tbd: " + s);
-    Firebase.setString(firebaseData, "dev3/TBD", s);
-    display.setCursor(0, 50);
-    display.print("count "+ t);
-    Serial.println("count "+ t);
-    Firebase.setString(firebaseData, "dev3/COUNT", t);
-  }
-
   display.display(); 
 }
 
