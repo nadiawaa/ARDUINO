@@ -4,12 +4,15 @@
 
 */
 
+#include <esp_int_wdt.h>
+#include <esp_task_wdt.h>
+
 #include <FirebaseESP32.h>
 #include <WiFi.h>
 
 #define FIREBASE_HOST "my-i-pond-default-rtdb.asia-southeast1.firebasedatabase.app"
-#define WIFI_SSID "telkom123"
-#define WIFI_PASSWORD "telkom123"
+#define WIFI_SSID "Abhyasa"
+#define WIFI_PASSWORD "DRA012108"
 #define FIREBASE_Authorization_key "VqaLWbyEY9nEly5jyO3NZjAotLkAXHMfmRzXN0b5"
 
 //Libraries for LoRa
@@ -96,7 +99,7 @@ void setup() {
 
   display.clearDisplay();
   display.setTextColor(WHITE);
-  display.setTextSize(0.5);
+  display.setTextSize(1);
   display.setCursor(0,0);
   display.print("LORA RECEIVER ");
   display.display();
@@ -123,7 +126,7 @@ void loop() {
      currentsecs = currentMillis / 1000; 
       if ((unsigned long)(currentsecs - previoussecs) >= interval) {
         Secs = Secs + 1;
-        Serial.println(Secs);
+        //Serial.println(Secs);
         if ( Secs >= 11 ) {
           Secs = 0; 
         }
@@ -143,38 +146,19 @@ void loop() {
 
   //read packet
   while (LoRa.available()) {
-//    Serial.print("LoRa.available()");
-//    Serial.print(LoRa.available());
-    LoRaData = LoRa.readString();
-    Serial.println(LoRaData);
-  }
-  if (msgCount == 10){
-    LoRa.end();
-  //SPI LoRa pins
-    SPI.begin(SCK, MISO, MOSI, SS);
-    //setup LoRa transceiver module
-    LoRa.setPins(SS, RST, DIO0);
-  
-    // Reinit Lora
-    if (!LoRa.begin(BAND)) {
-      Serial.println("Starting LoRa failed!");
-      while (1);
-    }                                                                                                                                                                               
-  }
+   LoRaData = LoRa.readString();
+   Serial.print(LoRaData);
+  } 
    
 }
 
 void sendMessage(String outgoing, byte MasterNode, byte otherNode) {
   LoRa.beginPacket();                   // start packet
-  LoRa.write(otherNode);
-  Serial.println("otherNode");// add destination address
-  Serial.println(otherNode);
+  LoRa.write(otherNode);                // add destination address
   LoRa.write(MasterNode);               // add sender address
   LoRa.write(msgCount);                 // add message ID
   LoRa.write(outgoing.length());        // add payload length
-  LoRa.print(outgoing); 
-  Serial.println("outgoing");// add payload
-  Serial.println(outgoing);
+  LoRa.print(outgoing);                 // add payload
   LoRa.endPacket();                     // finish packet and send it
   msgCount++;                           // increment message ID
 }
@@ -214,6 +198,7 @@ void onReceive(int packetSize) {
   display.setTextSize(1);
   display.setCursor(0,0);
   display.print(SenderNode);
+  display.setCursor(0,10);
   display.print(msgCount);
 
   String q = getValue(incoming,',',0);
@@ -282,4 +267,10 @@ String getValue(String data, char separator, int index)
         }
     }
     return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
+}
+
+void hard_restart() {
+  esp_task_wdt_init(1,true);
+  esp_task_wdt_add(NULL);
+  while(true);
 }

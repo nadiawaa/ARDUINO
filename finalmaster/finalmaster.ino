@@ -1,16 +1,17 @@
 /*
   Master Lora Node
   myIpond
-
 */
 
 #include <FirebaseESP32.h>
+#include <HTTPClient.h>
 #include <WiFi.h>
 
 #define FIREBASE_HOST "my-i-pond-default-rtdb.asia-southeast1.firebasedatabase.app"
 #define WIFI_SSID "telkom123"
 #define WIFI_PASSWORD "telkom123"
 #define FIREBASE_Authorization_key "VqaLWbyEY9nEly5jyO3NZjAotLkAXHMfmRzXN0b5"
+#define SERVER_NAME "http://mountaineerz.000webhostapp.com/sensordata.php"
 
 //Libraries for LoRa
 #include <SPI.h>
@@ -51,7 +52,7 @@ String LoRaData;
 byte msgCount = 0;           // count of outgoing messages
 
 // Tracks the time since last event fired
-unsigned long previousMillis=0;
+unsigned long previousMillis = 0;
 unsigned long int previoussecs = 0; 
 unsigned long int currentsecs = 0; 
 unsigned long currentMillis = 0;
@@ -60,6 +61,9 @@ int Secs = 0;
 
 FirebaseData firebaseData;
 FirebaseJson json;
+
+String PROJECT_API_KEY = "hello world";
+
 
 int sensorsuhu = 0;
 int sensorph = 0;
@@ -75,6 +79,7 @@ void setup() {
     Serial.print(".");
     delay(300);
   }
+
   Serial.println();
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
@@ -143,8 +148,6 @@ void loop() {
 
   //read packet
   while (LoRa.available()) {
-//    Serial.print("LoRa.available()");
-//    Serial.print(LoRa.available());
     LoRaData = LoRa.readString();
     Serial.println(LoRaData);
   }
@@ -161,7 +164,7 @@ void loop() {
       while (1);
     }                                                                                                                                                                               
   }
-   
+esp_restart();
 }
 
 void sendMessage(String outgoing, byte MasterNode, byte otherNode) {
@@ -216,6 +219,7 @@ void onReceive(int packetSize) {
   display.print(SenderNode);
   display.print(msgCount);
 
+  String temperature_data;
   String q = getValue(incoming,',',0);
   String r = getValue(incoming,',',1);
   String s = getValue(incoming,',',2);
@@ -230,14 +234,20 @@ void onReceive(int packetSize) {
     display.print("suhu: "+ q +" C");
     Serial.println("suhu: "+ q +" C");
     Firebase.setString(firebaseData, "dev1/TEMPERATURE", q);
+    temperature_data += "&suhu1=" + q;
+    
     display.setCursor(0, 30);
     display.print("pH: "+ r);
     Serial.println("pH: "+ r);
     Firebase.setString(firebaseData, "dev1/PH", r);
+    temperature_data += "&ph1=" + r;
+    
     display.setCursor(0, 40);
     display.print("tbd: " + s);
     Serial.println("tbd: " + s);
     Firebase.setString(firebaseData, "dev1/TBD", s);
+    temperature_data += "&kekeruhan1=" + s;
+    
     display.setCursor(0, 50);
     display.print("count " + t);
     Serial.println("count " + t);
@@ -252,20 +262,42 @@ void onReceive(int packetSize) {
     display.print("suhu: "+ q +" C");
     Serial.println("suhu: "+ q +" C");
     Firebase.setString(firebaseData, "dev2/TEMPERATURE", q);
+    temperature_data += "&suhu2=" + q;
+    
     display.setCursor(0, 30);
     display.print("pH: " + r);
     Serial.println("pH: " + r);
     Firebase.setString(firebaseData, "dev2/PH", r);
+    temperature_data += "&ph2=" + r;
+    
     display.setCursor(0, 40);
     display.print("tbd: "+ s);
     Serial.println("tbd: "+ s);
     Firebase.setString(firebaseData, "dev2/TBD", s);
+    temperature_data += "&kekeruhan2=" + s;
+    
     display.setCursor(0, 50);
     display.print("count "+ t);
     Serial.println("count "+ t);
     Firebase.setString(firebaseData, "dev2/COUNT", t);
-  }
-  display.display(); 
+
+
+    WiFiClient client;
+    HTTPClient http;
+  
+    http.begin(client, SERVER_NAME);
+    // Specify content-type header
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    // Send HTTP POST request
+    int httpResponseCode = http.POST(temperature_data);
+
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+      
+    // Free resources
+    http.end();
+    }
+    display.display(); 
 }
 
 String getValue(String data, char separator, int index)
