@@ -45,18 +45,9 @@ byte Node1 = 0xBB;
 byte Node2 = 0xCC; 
 
 String SenderNode = "";
-String outgoing;             // outgoing message
 String LoRaData;
 
-byte msgCount = 0;           // count of outgoing messages
-
-// Tracks the time since last event fired
-unsigned long previousMillis=0;
-unsigned long int previoussecs = 0; 
-unsigned long int currentsecs = 0; 
-unsigned long currentMillis = 0;
-int interval= 1 ; // updated every 1 second
-int Secs = 0; 
+int counter = 0; 
 
 FirebaseData firebaseData;
 FirebaseJson json;
@@ -64,9 +55,8 @@ FirebaseJson json;
 int sensorsuhu = 0;
 int sensorph = 0;
 int sensortbd = 0;
-int rssi = LoRa.packetRssi();
 
-void setup() {
+void setup() { 
  //initialize Serial Monitor
   Serial.begin(9600);
   WiFi.begin (WIFI_SSID, WIFI_PASSWORD);
@@ -96,11 +86,11 @@ void setup() {
 
   display.clearDisplay();
   display.setTextColor(WHITE);
-  display.setTextSize(0.5);
+  display.setTextSize(1);
   display.setCursor(0,0);
   display.print("LORA RECEIVER ");
   display.display();
-  
+
   Serial.println("LoRa Receiver");
   
   //SPI LoRa pins
@@ -119,67 +109,16 @@ void setup() {
 }
 
 void loop() {
-//  currentMillis = millis();
-//     currentsecs = currentMillis / 1000; 
-//      if ((unsigned long)(currentsecs - previoussecs) >= interval) {
-//        Secs = Secs + 1;
-//        Serial.println(Secs);
-//        if ( Secs >= 11 ) {
-//          Secs = 0; 
-//        }
-//        if ((Secs >= 1) && (Secs <= 5)) {
-//          String message = "34"; 
-//          sendMessage(message,MasterNode, Node1);
-//        }
-//        if ((Secs >= 6 ) && (Secs <= 10)) {
-//          String message = "55"; 
-//          sendMessage(message,MasterNode, Node2);
-//        }
-//        previoussecs = currentsecs;
-//      }
-
-  // parse for a packet, and call onReceive with the result:
-  onReceive(LoRa.parsePacket());
-
-  //read packet
-  while (LoRa.available()) {
-    LoRaData = LoRa.readString();
-    Serial.println(LoRaData);
-  }
-//  if (msgCount == 10){
-//    LoRa.end();
-//  //SPI LoRa pins
-//    SPI.begin(SCK, MISO, MOSI, SS);
-//    //setup LoRa transceiver module
-//    LoRa.setPins(SS, RST, DIO0);
-//  
-//    // Reinit Lora
-//    if (!LoRa.begin(BAND)) {
-//      Serial.println("Starting LoRa failed!");
-//      while (1);
-//    }                                                                                                                                                                               
-//  }
-   
-}
-
-void sendMessage(String outgoing, byte MasterNode, byte otherNode) {
-  LoRa.beginPacket();                   // start packet
-  LoRa.write(otherNode);
-  Serial.println("otherNode");// add destination address
-  Serial.println(otherNode);
-  LoRa.write(MasterNode);               // add sender address
-  LoRa.write(msgCount);                 // add message ID
-  LoRa.write(outgoing.length());        // add payload length
-  LoRa.print(outgoing); 
-  Serial.println("outgoing");// add payload
-  Serial.println(outgoing);
-  LoRa.endPacket();                     // finish packet and send it
-  msgCount++;                           // increment message ID
-}
-
-void onReceive(int packetSize) {
-  if (packetSize == 0) return;          // if there's no packet, return
-
+  //try to parse packet
+  int packetSize = LoRa.parsePacket();
+  if (packetSize) {
+    Serial.print("Received packet ");
+    
+   //print RSSI of packet
+   int rssi = LoRa.packetRssi();
+   Serial.print(" with RSSI ");    
+   Serial.println(rssi);
+    
   // read packet header bytes:
   int recipient = LoRa.read();          // recipient address
   byte sender = LoRa.read();            // sender address
@@ -196,34 +135,21 @@ void onReceive(int packetSize) {
     incoming += (char)LoRa.read();
   }
 
-  if (incomingLength != incoming.length()) {   // check length for error
-    Serial.println("error: message length does not match length");
-    return;                             // skip rest of function
-  }
-
-  // if the recipient isn't this device or broadcast,
-  if (recipient != Node1 && recipient != MasterNode) {
-    Serial.println("This message is not for me.");
-    return;                             // skip rest of function
-  }
-
-  //clear display
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setCursor(0,0);
-  display.print(SenderNode);
-  display.print(msgCount);
-
   String q = getValue(incoming,',',0);
   String r = getValue(incoming,',',1);
   String s = getValue(incoming,',',2);
   String t = getValue(incoming,',',3);
   
   if( sender == 0XBB ){ 
+    display.clearDisplay();
+    display.setTextColor(WHITE);
+    display.setTextSize(1);
+    display.setCursor(0,0);
+    display.print("node1");
     Serial.println("node 1");
-    display.setCursor(50,10);
-    display.print("RSSI:" + rssi);
-    Serial.print("RSSI: " + rssi);
+    display.setCursor(0,10);
+    display.print("rssi: ");
+    display.print(rssi);
     display.setCursor(0, 20);
     display.print("suhu: "+ q +" C");
     Serial.println("suhu: "+ q +" C");
@@ -242,10 +168,15 @@ void onReceive(int packetSize) {
     Firebase.setString(firebaseData, "dev1/COUNT", t);
   }
   if( sender == 0XCC ){ 
+    display.clearDisplay();
+    display.setTextColor(WHITE);
+    display.setTextSize(1);
+    display.setCursor(0,0);
+    display.print("node2");
     Serial.println("node 2");
-    display.setCursor(50,10);
-    display.print("RSSI:" + rssi);
-    Serial.println("RSSI: " + rssi);
+    display.setCursor(0,10);
+    display.print("rssi: ");
+    display.print(rssi);
     display.setCursor(0, 20);
     display.print("suhu: "+ q +" C");
     Serial.println("suhu: "+ q +" C");
@@ -264,6 +195,7 @@ void onReceive(int packetSize) {
     Firebase.setString(firebaseData, "dev2/COUNT", t);
   }
   display.display(); 
+}
 }
 
 String getValue(String data, char separator, int index)

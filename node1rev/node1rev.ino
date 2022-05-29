@@ -1,5 +1,3 @@
-#include <LoRa.h>
-
 /*
   Lora Node 1 
   myIpond
@@ -58,7 +56,6 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 
 String outgoing;              // outgoing message
 
-byte msgCount = 0;            // count of outgoing messages
 byte MasterNode = 0xFF;     
 byte Node1 = 0xBB;
 
@@ -66,6 +63,8 @@ float sensorsuhu = 0;
 float sensorph = 0;
 float sensortbd = 0;
 
+//packet counter
+int counter = 0;
 
 void setup() {
   //initialize Serial Monitor
@@ -79,9 +78,9 @@ void setup() {
 
   //initialize OLED
   Wire.begin(OLED_SDA, OLED_SCL);
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3c, false, false)) {    // Address 0x3C for 128x32
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3c, false, false)) { // Address 0x3C for 128x32
     Serial.println(F("SSD1306 allocation failed"));
-    for(;;);                                                        // Don't proceed, loop forever
+    for(;;); // Don't proceed, loop forever
   }
   
   display.clearDisplay();
@@ -110,13 +109,11 @@ void setup() {
 }
 
 void loop() {
+   
   Serial.print("Sending packet: ");
-  Serial.println(msgCount);
+  Serial.println(counter);
 
-  // parse for a packet, and call onReceive with the result:
-  onReceive(LoRa.parsePacket());
-
-  //sensor tbd
+  //sensor temp
   sensors.requestTemperatures(); 
   Serial.print("Temperature is: "); 
   Serial.println(sensors.getTempCByIndex(0));
@@ -190,7 +187,7 @@ void loop() {
   display.print("LoRa packet sent.");
   display.setCursor(0,20);
   display.print("Counter:");
-  display.print(msgCount);  
+  display.print(counter);  
   display.setCursor(0,30);
   display.print("suhu:");
   display.print(sensorsuhu);     
@@ -201,57 +198,23 @@ void loop() {
   display.print("tbd:");
   display.print(sensortbd); 
   display.display();
-}
 
-void sendMessage(String outgoing, byte MasterNode, byte otherNode) {
-  LoRa.beginPacket();                   // start packet
-  LoRa.write(MasterNode);               // add destination address
-  LoRa.write(Node1);                    // add sender address
-  LoRa.write(msgCount);                 // add message ID
-  LoRa.write(outgoing.length());        // add payload length
-  LoRa.print(outgoing);                 // add payload
-  LoRa.endPacket();                     // finish packet and send it
-  msgCount++;                           // increment message ID
-}
+  //Send LoRa packet to receiver
 
-void onReceive(int packetSize) {
-  if (packetSize == 0) return;          // if there's no packet, return
+  String node1message;
+  LoRa.beginPacket(); 
+  LoRa.print(counter);
+  node1message = node1message + sensorsuhu + "," + sensorph + "," + sensortbd + "," + counter;
+  sendMessage(node1message,MasterNode,Node1);
+  LoRa.endPacket();
 
-  //read packet header bytes:
-  int recipient = LoRa.read();          // recipient address
-  byte sender = LoRa.read();            // sender address
-  byte incomingMsgId = LoRa.read();     // incoming msg ID
-  byte incomingLength = LoRa.read();    // incoming msg length
-
-  String incoming = "";
-
-  while (LoRa.available()) {
-    incoming += (char)LoRa.read();
-  }
+  counter++;
   
-  if (incomingLength != incoming.length()) {   // check length for error
-    Serial.println("error: message length does not match length");
-    return;
-  }
+  delay(10000);
 
-  // if the recipient isn't this device or broadcast,
-  if (recipient != Node1 && recipient != MasterNode) {
-    Serial.println("This message is not for me.");
-    return;
+  if (counter == 300){   
+  ESP.restart();
   }
-  
-//  Serial.print("incoming: ");
-//  Serial.println(incoming);
-//  int Val = incoming.toInt();
-//  if(Val == 34)
-//  { 
-    String node1message; 
-    LoRa.print(msgCount);
-    node1message = node1message + sensorsuhu + "," + sensorph + "," + sensortbd + "," + msgCount;
-    sendMessage(node1message,MasterNode,Node1);
-    delay(100);
-//  }
-  
 }
 
 float round_to_dp( float in_value, int decimal_place )
@@ -259,4 +222,15 @@ float round_to_dp( float in_value, int decimal_place )
   float multiplier = powf( 10.0f, decimal_place );
   in_value = roundf( in_value * multiplier ) / multiplier;
   return in_value;
+}
+
+
+void sendMessage(String outgoing, byte MasterNode, byte otherNode) {
+  LoRa.beginPacket();                   // start packet
+  LoRa.write(MasterNode);               // add destination address
+  LoRa.write(Node1);                    // add sender address
+  LoRa.write(counter);                 // add message ID
+  LoRa.write(outgoing.length());        // add payload length
+  LoRa.print(outgoing);                 // add payload
+  LoRa.endPacket();                     // finish packet and send it
 }
