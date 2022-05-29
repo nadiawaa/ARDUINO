@@ -205,7 +205,7 @@ void loop() {
   LoRa.beginPacket(); 
   LoRa.print(counter);
   node2message = node2message + sensorsuhu + "," + sensorph + "," + sensortbd + "," + counter;
-  sendMessage(node2message,MasterNode,Node1);
+  sendMessage(node2message,MasterNode,Node2);
   LoRa.endPacket();
 
   counter++;
