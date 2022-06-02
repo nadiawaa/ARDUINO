@@ -6,11 +6,14 @@
 
 #include <FirebaseESP32.h>
 #include <WiFi.h>
+#include "time.h"
+#include <HTTPClient.h>
 
 #define FIREBASE_HOST "my-i-pond-default-rtdb.asia-southeast1.firebasedatabase.app"
-#define WIFI_SSID "Helloworld"
-#define WIFI_PASSWORD "tahukukus"
+#define WIFI_SSID "Abhyasa"
+#define WIFI_PASSWORD "DRA012108"
 #define FIREBASE_Authorization_key "VqaLWbyEY9nEly5jyO3NZjAotLkAXHMfmRzXN0b5"
+#define SERVER_NAME "http://mountaineerz.000webhostapp.com/sensordata.php"
 
 //Libraries for LoRa
 #include <SPI.h>
@@ -52,9 +55,25 @@ int counter = 0;
 FirebaseData firebaseData;
 FirebaseJson json;
 
+String PROJECT_API_KEY = "hello world";
+
 int sensorsuhu = 0;
 int sensorph = 0;
 int sensortbd = 0;
+
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 3600;
+const int   daylightOffset_sec = 3600;
+
+void printLocalTime()
+{
+  struct tm timeinfo;
+  if(!getLocalTime(&timeinfo)){
+    Serial.println("Failed to obtain time");
+    return;
+  }
+  Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+}
 
 void setup() { 
  //initialize Serial Monitor
@@ -65,6 +84,12 @@ void setup() {
     Serial.print(".");
     delay(300);
   }
+
+  //init and get the time
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  printLocalTime();
+
+
   Serial.println();
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
@@ -134,7 +159,7 @@ void loop() {
   while (LoRa.available()) {
     incoming += (char)LoRa.read();
   }
-
+  String temperature_data;
   String q = getValue(incoming,',',0);
   String r = getValue(incoming,',',1);
   String s = getValue(incoming,',',2);
@@ -154,18 +179,27 @@ void loop() {
     display.print("suhu: "+ q +" C");
     Serial.println("suhu: "+ q +" C");
     Firebase.setString(firebaseData, "dev1/TEMPERATURE", q);
+    temperature_data += "&suhu1=" + q;
+        
     display.setCursor(0, 30);
     display.print("pH: "+ r);
     Serial.println("pH: "+ r);
     Firebase.setString(firebaseData, "dev1/PH", r);
+    temperature_data += "&ph1=" + r;
+        
     display.setCursor(0, 40);
     display.print("tbd: " + s);
     Serial.println("tbd: " + s);
     Firebase.setString(firebaseData, "dev1/TBD", s);
+    temperature_data += "&kekeruhan1=" + s;
+    
     display.setCursor(0, 50);
     display.print("count " + t);
     Serial.println("count " + t);
     Firebase.setString(firebaseData, "dev1/COUNT", t);
+    printLocalTime();
+//  Firebase.setString(firebaseData, "dev1/time", &timeinfo;
+
   }
   if( sender == 0XCC ){ 
     display.clearDisplay();

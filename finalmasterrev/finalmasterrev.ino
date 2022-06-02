@@ -1,17 +1,30 @@
 /*
   Master Lora Node
   myIpond
+
 */
 
 #include <FirebaseESP32.h>
-#include <HTTPClient.h>
 #include <WiFi.h>
+#include "time.h"
+#include <HTTPClient.h>
 
 #define FIREBASE_HOST "my-i-pond-default-rtdb.asia-southeast1.firebasedatabase.app"
 #define WIFI_SSID "Abhyasa"
 #define WIFI_PASSWORD "DRA012108"
 #define FIREBASE_Authorization_key "VqaLWbyEY9nEly5jyO3NZjAotLkAXHMfmRzXN0b5"
-#define SERVER_NAME "http://mountaineerz.000webhostapp.com/sensordata.php"
+const char* SERVER_NAME = "http://mountaineerz.000webhostapp.com/sensordata.php";
+
+const char* SERVER_NAME1 = "http://mountaineerz.000webhostapp.com/sensordata1.php";
+const char* SERVER_NAME2 = "http://mountaineerz.000webhostapp.com/sensordata2.php";
+const char* SERVER_NAME3 = "http://mountaineerz.000webhostapp.com/sensordata3.php";
+
+
+//-------------------------------------------------------------------
+//Send an HTTP POST request every 30 seconds
+unsigned long lastMillis = 0;
+long interval = 5000;
+
 
 //Libraries for LoRa
 #include <SPI.h>
@@ -46,31 +59,47 @@ byte Node1 = 0xBB;
 byte Node2 = 0xCC; 
 
 String SenderNode = "";
-String outgoing;             // outgoing message
 String LoRaData;
 
-byte msgCount = 0;           // count of outgoing messages
-
-// Tracks the time since last event fired
-unsigned long previousMillis = 0;
-unsigned long int previoussecs = 0; 
-unsigned long int currentsecs = 0; 
-unsigned long currentMillis = 0;
-int interval= 1 ; // updated every 1 second
-int Secs = 0; 
+int counter = 0; 
 
 FirebaseData firebaseData;
 FirebaseJson json;
 
 String PROJECT_API_KEY = "hello world";
 
-
 int sensorsuhu = 0;
 int sensorph = 0;
 int sensortbd = 0;
-int rssi = LoRa.packetRssi();
 
-void setup() {
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 3600;
+const int   daylightOffset_sec = 3600;
+
+
+
+
+  float s2 = 234567; 
+  float p2 = 2234567;
+  float k2 = 22234567;
+  float s3 = 345321; 
+  float p3 = 3345321;
+  float k3 = 33345321;
+
+
+
+  
+void printLocalTime()
+{
+  struct tm timeinfo;
+  if(!getLocalTime(&timeinfo)){
+    Serial.println("Failed to obtain time");
+    return;
+  }
+  Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+}
+
+void setup() { 
  //initialize Serial Monitor
   Serial.begin(9600);
   WiFi.begin (WIFI_SSID, WIFI_PASSWORD);
@@ -79,6 +108,11 @@ void setup() {
     Serial.print(".");
     delay(300);
   }
+
+  //init and get the time
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  printLocalTime();
+
 
   Serial.println();
   Serial.print("IP Address: ");
@@ -101,11 +135,11 @@ void setup() {
 
   display.clearDisplay();
   display.setTextColor(WHITE);
-  display.setTextSize(0.5);
+  display.setTextSize(1);
   display.setCursor(0,0);
   display.print("LORA RECEIVER ");
   display.display();
-  
+
   Serial.println("LoRa Receiver");
   
   //SPI LoRa pins
@@ -124,67 +158,33 @@ void setup() {
 }
 
 void loop() {
-  currentMillis = millis();
-     currentsecs = currentMillis / 1000; 
-      if ((unsigned long)(currentsecs - previoussecs) >= interval) {
-        Secs = Secs + 1;
-        Serial.println(Secs);
-        if ( Secs >= 11 ) {
-          Secs = 0; 
-        }
-        if ((Secs >= 1) && (Secs <= 5)) {
-          String message = "34"; 
-          sendMessage(message,MasterNode, Node1);
-        }
-        if ((Secs >= 6 ) && (Secs <= 10)) {
-          String message = "55"; 
-          sendMessage(message,MasterNode, Node2);
-        }
-        previoussecs = currentsecs;
-      }
 
-  // parse for a packet, and call onReceive with the result:
-  onReceive(LoRa.parsePacket());
-
-  //read packet
-  while (LoRa.available()) {
-    LoRaData = LoRa.readString();
-    Serial.println(LoRaData);
+    //-----------------------------------------------------------------
+  //Check WiFi connection status
+  if(WiFi.status()== WL_CONNECTED){
+    if(millis() - lastMillis > interval) {
+       //Send an HTTP POST request every interval seconds
+       upload_temperature1();
+       lastMillis = millis();
+    }
   }
-  if (msgCount == 10){
-    LoRa.end();
-  //SPI LoRa pins
-    SPI.begin(SCK, MISO, MOSI, SS);
-    //setup LoRa transceiver module
-    LoRa.setPins(SS, RST, DIO0);
-  
-    // Reinit Lora
-    if (!LoRa.begin(BAND)) {
-      Serial.println("Starting LoRa failed!");
-      while (1);
-    }                                                                                                                                                                               
+  //-----------------------------------------------------------------
+  else {
+    Serial.println("WiFi Disconnected");
   }
-esp_restart();
-}
+  //-----------------------------------------------------------------
 
-void sendMessage(String outgoing, byte MasterNode, byte otherNode) {
-  LoRa.beginPacket();                   // start packet
-  LoRa.write(otherNode);
-  Serial.println("otherNode");// add destination address
-  Serial.println(otherNode);
-  LoRa.write(MasterNode);               // add sender address
-  LoRa.write(msgCount);                 // add message ID
-  LoRa.write(outgoing.length());        // add payload length
-  LoRa.print(outgoing); 
-  Serial.println("outgoing");// add payload
-  Serial.println(outgoing);
-  LoRa.endPacket();                     // finish packet and send it
-  msgCount++;                           // increment message ID
-}
 
-void onReceive(int packetSize) {
-  if (packetSize == 0) return;          // if there's no packet, return
-
+ //try to parse packet
+  int packetSize = LoRa.parsePacket();
+  if (packetSize) {
+    Serial.print("Received packet ");
+    
+   //print RSSI of packet
+   int rssi = LoRa.packetRssi();
+   Serial.print(" with RSSI ");    
+   Serial.println(rssi);
+    
   // read packet header bytes:
   int recipient = LoRa.read();          // recipient address
   byte sender = LoRa.read();            // sender address
@@ -200,65 +200,34 @@ void onReceive(int packetSize) {
   while (LoRa.available()) {
     incoming += (char)LoRa.read();
   }
-
-  if (incomingLength != incoming.length()) {   // check length for error
-    Serial.println("error: message length does not match length");
-    return;                             // skip rest of function
-  }
-
-  // if the recipient isn't this device or broadcast,
-  if (recipient != Node1 && recipient != MasterNode) {
-    Serial.println("This message is not for me.");
-    return;                             // skip rest of function
-  }
-
-  //clear display
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setCursor(0,0);
-  display.print(SenderNode);
-  display.print(msgCount);
-
   String temperature_data;
   String q = getValue(incoming,',',0);
   String r = getValue(incoming,',',1);
   String s = getValue(incoming,',',2);
   String t = getValue(incoming,',',3);
-
-  float s2 = 2; 
-  float p2 = 22;
-  float k2 = 222;
-
-  float s3 = 3; 
-  float p3 = 33;
-  float k3 = 333;
-
-
-  String suhu2 = String(s2, 2);
-  String ph2 = String(p2, 2);
-  String kekeruhan2 = String(k2, 2);
-
-  String suhu3 = String(s3, 2);
-  String ph3 = String(p3, 2);
-  String kekeruhan3 = String(k3, 2);
   
   if( sender == 0XBB ){ 
+    display.clearDisplay();
+    display.setTextColor(WHITE);
+    display.setTextSize(1);
+    display.setCursor(0,0);
+    display.print("node1");
     Serial.println("node 1");
-    display.setCursor(50,10);
-    display.print("RSSI:" + rssi);
-    Serial.print("RSSI: " + rssi);
+    display.setCursor(0,10);
+    display.print("rssi: ");
+    display.print(rssi);
     display.setCursor(0, 20);
     display.print("suhu: "+ q +" C");
     Serial.println("suhu: "+ q +" C");
     Firebase.setString(firebaseData, "dev1/TEMPERATURE", q);
     temperature_data += "&suhu1=" + q;
-    
+        
     display.setCursor(0, 30);
     display.print("pH: "+ r);
     Serial.println("pH: "+ r);
     Firebase.setString(firebaseData, "dev1/PH", r);
     temperature_data += "&ph1=" + r;
-    
+        
     display.setCursor(0, 40);
     display.print("tbd: " + s);
     Serial.println("tbd: " + s);
@@ -269,60 +238,127 @@ void onReceive(int packetSize) {
     display.print("count " + t);
     Serial.println("count " + t);
     Firebase.setString(firebaseData, "dev1/COUNT", t);
+    printLocalTime();
+//  Firebase.setString(firebaseData, "dev1/time", &timeinfo;
+
+
+      //HTTP POST request data
+  String temperature_data1;
+  temperature_data1 = "api_key="+PROJECT_API_KEY;
+  temperature_data1 += "&suhu1="+q;
+  temperature_data1 += "&ph1="+r;
+  temperature_data1 += "&kekeruhan1="+s;
+  
+  WiFiClient client;
+  HTTPClient http;
+  
+  http.begin(client, SERVER_NAME1);
+  
+  // Specify content-type header
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  // Send HTTP POST request
+  int httpResponseCode1 = http.POST(temperature_data1);
+  //--------------------------------------------------------------------------------
+
+  Serial.print("HTTP Response code (1): ");
+  Serial.println(httpResponseCode1);
+    http.end();
+  delay (10000);
+  
   }
   if( sender == 0XCC ){ 
+    display.clearDisplay();
+    display.setTextColor(WHITE);
+    display.setTextSize(1);
+    display.setCursor(0,0);
+    display.print("node2");
     Serial.println("node 2");
-    display.setCursor(50,10);
-    display.print("RSSI:" + rssi);
-    Serial.println("RSSI: " + rssi);
+    display.setCursor(0,10);
+    display.print("rssi: ");
+    display.print(rssi);
     display.setCursor(0, 20);
     display.print("suhu: "+ q +" C");
     Serial.println("suhu: "+ q +" C");
     Firebase.setString(firebaseData, "dev2/TEMPERATURE", q);
-    temperature_data += "&suhu2="+suhu2;;
-    
     display.setCursor(0, 30);
     display.print("pH: " + r);
     Serial.println("pH: " + r);
     Firebase.setString(firebaseData, "dev2/PH", r);
-    temperature_data += "&ph2="+ph2;
-    
     display.setCursor(0, 40);
     display.print("tbd: "+ s);
     Serial.println("tbd: "+ s);
     Firebase.setString(firebaseData, "dev2/TBD", s);
-    temperature_data += "&kekeruhan2="+kekeruhan2;
-    
     display.setCursor(0, 50);
     display.print("count "+ t);
     Serial.println("count "+ t);
     Firebase.setString(firebaseData, "dev2/COUNT", t);
 
-    temperature_data += "&suhu3="+suhu3;
-    temperature_data += "&ph3="+ph3;
-    temperature_data += "&kekeruhan3="+kekeruhan3;
+  }
 
+
+  }
+  display.display(); 
+}
+
+
+
+
+void upload_temperature1()
+{
+    String suhu2 = String(s2, 2);
+  String ph2 = String(p2, 2);
+  String kekeruhan2 = String(k2, 2);
+
+  String suhu3 = String(s3, 2);
+  String ph3 = String(p3, 2);
+  String kekeruhan3 = String(k3, 2);
+
+
+
+
+
+  
+  String temperature_data2;
+  temperature_data2 = "api_key="+PROJECT_API_KEY;
+  temperature_data2 += "&suhu2="+suhu2;
+  temperature_data2 += "&ph2="+ph2;
+  temperature_data2 += "&kekeruhan2="+kekeruhan2;
 
     WiFiClient client;
     HTTPClient http;
 
-    Serial.print("temperature_data: ");
-    Serial.println(temperature_data);
+  http.begin(client, SERVER_NAME2);
+  // Specify content-type header
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  // Send HTTP POST request
+  int httpResponseCode2 = http.POST(temperature_data2);
+  Serial.print("HTTP Response code (2): ");
+  Serial.println(httpResponseCode2);
   
-    http.begin(client, SERVER_NAME);
-    // Specify content-type header
-    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-    // Send HTTP POST request
-    int httpResponseCode = http.POST(temperature_data);
 
-    Serial.print("HTTP Response code: ");
-    Serial.println(httpResponseCode);
-      
-    // Free resources
-    http.end();
-    }
-    display.display(); 
+
+  String temperature_data3;
+  temperature_data3 = "api_key="+PROJECT_API_KEY;
+  temperature_data3 += "&suhu3="+suhu3;
+  temperature_data3 += "&ph3="+ph3;
+  temperature_data3 += "&kekeruhan3="+kekeruhan3;
+
+  http.begin(client, SERVER_NAME3);
+  // Specify content-type header
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  // Send HTTP POST request
+  int httpResponseCode3 = http.POST(temperature_data3);
+
+  Serial.print("HTTP Response code (3): ");
+  Serial.println(httpResponseCode3);
+
+  http.end();
+  delay (10000);
+  
 }
+
+  
+
 
 String getValue(String data, char separator, int index)
 {

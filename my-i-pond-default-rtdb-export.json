@@ -1,0 +1,35 @@
+{
+  "dev1": {
+    "COUNT": "81",
+    "PH": "0.00",
+    "TBD": "3000.00",
+    "TEMPERATURE": "-127.00"
+  },
+  "dev2": {
+    "COUNT": "207",
+    "PH": "6.29",
+    "TBD": "3000.00",
+    "TEMPERATURE": "24.31"
+  },
+  "dev3": {
+    "PH": "6.96243",
+    "TBD": "2520.55005",
+    "TEMPERATURE": "24.68750"
+  },
+  "titik1": {
+    "ph": 6,
+    "suhu": 24.09,
+    "turbidity": 19
+  },
+  "titik2": {
+    "jarak": 63,
+    "ph": 7.8,
+    "suhu": 30,
+    "turbidity": 36
+  },
+  "titik3": {
+    "ph": 7,
+    "suhu": 23.6,
+    "turbidity": 39
+  }
+}
