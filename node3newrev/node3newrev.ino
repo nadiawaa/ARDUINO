@@ -9,8 +9,8 @@
 #include <HTTPClient.h>
 
 #define FIREBASE_HOST "my-i-pond-default-rtdb.asia-southeast1.firebasedatabase.app"
-#define WIFI_SSID "Abhyasa"
-#define WIFI_PASSWORD "DRA012108"
+#define WIFI_SSID "Homestay PANDU"
+#define WIFI_PASSWORD "homestaypandu4321"
 #define FIREBASE_Authorization_key "VqaLWbyEY9nEly5jyO3NZjAotLkAXHMfmRzXN0b5"
 
 //Libraries for LoRa
@@ -65,26 +65,22 @@ DallasTemperature sensors(&oneWire);
 FirebaseData firebaseData;
 FirebaseJson json;
 
-
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 
 float sensorsuhu = 0;
 float sensorph = 0;
 float sensortbd = 0;
 
-const char* SERVER_NAME1 = "http://mountaineerz.000webhostapp.com/sensordata1.php";
-const char* SERVER_NAME2 = "http://mountaineerz.000webhostapp.com/sensordata2.php";
-const char* SERVER_NAME3 = "http://mountaineerz.000webhostapp.com/sensordata3.php";
+const char* SERVER_NAME3 = "https://beipond.skytronik.online/alat/sensordata3.php";
 
 //PROJECT_API_KEY is the exact duplicate of, PROJECT_API_KEY in config.php file
 //Both values must be same
 String PROJECT_API_KEY = "hello world";
-//-------------------------------------------------------------------
+
+
 //Send an HTTP POST request every 30 seconds
 unsigned long lastMillis = 0;
 long interval = 5000;
-//-------------------------------------------------------------------
-
 
 
 void setup() {
@@ -142,13 +138,12 @@ void setup() {
 
 void loop() {
 
-    if(WiFi.status()== WL_CONNECTED){
+  if(WiFi.status()== WL_CONNECTED){
     if(millis() - lastMillis > interval) {
        //Send an HTTP POST request every interval seconds
        lastMillis = millis();
     }
   }
-  //-----------------------------------------------------------------
   else {
     Serial.println("WiFi Disconnected");
   }
@@ -241,18 +236,16 @@ void loop() {
   display.display();
 
   String suhu3 = String(sensorsuhu, 2);
-  String ph2 = String(sensorph, 2);
-  String kekeruhan2 = String(sensortbd, 2);
+  String ph3 = String(sensorph, 2);
+  String kekeruhan3 = String(sensortbd, 2);
   
   String temperature_data3;
   temperature_data3 = "api_key="+PROJECT_API_KEY;
   temperature_data3 += "&suhu3="+suhu3;
-  temperature_data3 += "&ph3="+ph2;
-  temperature_data3 += "&kekeruhan3="+kekeruhan2;
+  temperature_data3 += "&ph3="+ph3;
+  temperature_data3 += "&kekeruhan3="+kekeruhan3;
 
-
-
-    WiFiClient client;
+  WiFiClient client;
   HTTPClient http;
   http.begin(client, SERVER_NAME3);
   
@@ -260,17 +253,13 @@ void loop() {
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
   // Send HTTP POST request
   int httpResponseCode3 = http.POST(temperature_data3);
-  //--------------------------------------------------------------------------------
 
   Serial.print("HTTP Response code (3): ");
   Serial.println(httpResponseCode3);
 
-  
   // Free resources
   http.end();
   delay (10000);
-
-
 }
 
 float round_to_dp( float in_value, int decimal_place )
