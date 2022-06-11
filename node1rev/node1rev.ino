@@ -210,7 +210,7 @@ void loop() {
 
   counter++;
   
-  delay(10000);
+  delay(300000);
 
   if (counter == 300){   
   ESP.restart();
