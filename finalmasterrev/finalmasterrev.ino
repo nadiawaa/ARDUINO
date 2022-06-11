@@ -13,8 +13,8 @@
 #define WIFI_PASSWORD "telkom123"
 #define FIREBASE_Authorization_key "VqaLWbyEY9nEly5jyO3NZjAotLkAXHMfmRzXN0b5"
 
-const char* SERVER_NAME1 = "https://beipond.skytronik.online/alat/sensordata1.php";
-const char* SERVER_NAME2 = "https://beipond.skytronik.online/alat/sensordata2.php";
+const char* SERVER_NAME1 = "http://beipond.skytronik.online/alat/sensordata1.php";
+const char* SERVER_NAME2 = "http://beipond.skytronik.online/alat/sensordata2.php";
 
 //-------------------------------------------------------------------
 //Send an HTTP POST request every 30 seconds
@@ -201,6 +201,7 @@ void loop() {
     temperature_data1 += "&suhu1="+q;
     temperature_data1 += "&ph1="+r;
     temperature_data1 += "&kekeruhan1="+s;
+    temperature_data1 += "&counter1="+t;
     
     WiFiClient client;
     HTTPClient http;
@@ -214,9 +215,9 @@ void loop() {
   
     Serial.print("HTTP Response code (1): ");
     Serial.println(httpResponseCode1);
-      http.end();
-    delay (10000);
     
+    http.end();
+    delay (10000);
   }
   if( sender == 0XCC ){ 
     display.clearDisplay();
@@ -253,6 +254,7 @@ void loop() {
     temperature_data2 += "&suhu2="+q;
     temperature_data2 += "&ph2="+r;
     temperature_data2 += "&kekeruhan2="+s;
+    temperature_data2 += "&counter2="+t;
 
     WiFiClient client;
     HTTPClient http;
@@ -267,9 +269,16 @@ void loop() {
   
     http.end();
     delay (10000);
-    }
+   }
   }
-  display.display(); 
+  display.display();
+
+  
+  counter++;
+
+// if (counter == 300){   
+//    ESP.restart();
+//  }
 }
 
 String getValue(String data, char separator, int index)

@@ -42,9 +42,9 @@
 #define BAND 915E6
 
 //OLED pins
-#define OLED_SDA 21
-#define OLED_SCL 22 
-#define OLED_RST RST
+#define OLED_SDA 4
+#define OLED_SCL 15 
+#define OLED_RST 16
 #define SCREEN_WIDTH 128        // OLED display width, in pixels
 #define SCREEN_HEIGHT 64        // OLED display height, in pixels
 
@@ -71,7 +71,12 @@ float sensorsuhu = 0;
 float sensorph = 0;
 float sensortbd = 0;
 
-const char* SERVER_NAME3 = "https://beipond.skytronik.online/alat/sensordata3.php";
+//packet counter
+int counter = 0;
+
+
+const char* SERVER_NAME3 = "http://beipond.skytronik.online/alat/sensordata3.php";
+//const char* SERVER_NAME3 = "http://mountaineerz.000webhostapp.com/sensordata3.php";
 
 //PROJECT_API_KEY is the exact duplicate of, PROJECT_API_KEY in config.php file
 //Both values must be same
@@ -137,16 +142,30 @@ void setup() {
 }
 
 void loop() {
-
+  
+  //-----------------------------------------------------------------
+  //Check WiFi connection status
   if(WiFi.status()== WL_CONNECTED){
     if(millis() - lastMillis > interval) {
-       //Send an HTTP POST request every interval seconds
+       //Send an HTTP POST request every interval second
+       upload_temperature3();
        lastMillis = millis();
     }
   }
+  //-----------------------------------------------------------------
   else {
     Serial.println("WiFi Disconnected");
   }
+  //-----------------------------------------------------------------
+
+  if (counter == 300){   
+    ESP.restart();
+  }
+
+}
+
+void upload_temperature3() {
+
 
   //sensor suhu
   sensors.requestTemperatures(); 
@@ -201,7 +220,9 @@ void loop() {
   Serial.println(" V");
   Serial.print(ntu,3);
   Serial.println(" NTU");
-  delay(1000);
+
+  Serial.print("Sending packet: ");
+  Serial.println(counter);
 
   Serial.println("____________________________________________________________________");
   delay(1000);
@@ -213,6 +234,7 @@ void loop() {
   delay(10);
   sensortbd = ("%.2f", ntu);
   delay(10);
+  counter = counter;
   
   //display OLED
   display.clearDisplay();
@@ -221,6 +243,8 @@ void loop() {
   display.setCursor(0,10);
   display.print("LoRa packet sent.");
   display.setCursor(0,20); 
+  display.print("sending packet: ");
+  display.print(counter);
   display.setCursor(0,30);
   display.print("suhu:");
   display.print(sensorsuhu);
@@ -233,17 +257,22 @@ void loop() {
   display.print("tbd:");
   display.print(sensortbd);
   Firebase.setString(firebaseData, "dev3/TBD", sensortbd); 
+  Firebase.setString(firebaseData, "dev3/counter", counter); 
   display.display();
 
-  String suhu3 = String(sensorsuhu, 2);
-  String ph3 = String(sensorph, 2);
-  String kekeruhan3 = String(sensortbd, 2);
-  
+  counter++;
+//  float s3 = -47;
+  String suhu3 = String(sensorsuhu);
+  String ph3 = String(sensorph);
+  String kekeruhan3 = String(sensortbd);
+  String counter3 = String(counter);
+   
   String temperature_data3;
   temperature_data3 = "api_key="+PROJECT_API_KEY;
   temperature_data3 += "&suhu3="+suhu3;
   temperature_data3 += "&ph3="+ph3;
   temperature_data3 += "&kekeruhan3="+kekeruhan3;
+  temperature_data3 += "&counter3="+counter3;
 
   WiFiClient client;
   HTTPClient http;
@@ -258,7 +287,7 @@ void loop() {
   Serial.println(httpResponseCode3);
 
   // Free resources
-  http.end();
+  http.end(); 
   delay (10000);
 }
 

@@ -10,8 +10,9 @@
 #include <HTTPClient.h>
 
 #define FIREBASE_HOST "my-i-pond-default-rtdb.asia-southeast1.firebasedatabase.app"
-#define WIFI_SSID "Abhyasa"
-#define WIFI_PASSWORD "DRA012108"
+#define WIFI_SSID "telkom123"
+#define WIFI_PASSWORD "telkom123
+"
 #define FIREBASE_Authorization_key "VqaLWbyEY9nEly5jyO3NZjAotLkAXHMfmRzXN0b5"
 #define SERVER_NAME "http://mountaineerz.000webhostapp.com/sensordata.php"
 
