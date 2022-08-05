@@ -11,10 +11,10 @@
 #define FIREBASE_HOST "my-i-pond-default-rtdb.asia-southeast1.firebasedatabase.app"
 #define WIFI_SSID "telkom123"
 #define WIFI_PASSWORD "telkom123"
-#define FIREBASE_Authorization_key "VqaLWbyEY9nEly5jyO3NZjAotLkAXHMfmRzXN0b5"
+#define FIREBASE_Authorization_key " "
 
-const char* SERVER_NAME1 = "http://beipond.skytronik.online/alat/sensordata1.php";
-const char* SERVER_NAME2 = "http://beipond.skytronik.online/alat/sensordata2.php";
+const char* SERVER_NAME1 = " ";
+const char* SERVER_NAME2 = " ";
 
 //-------------------------------------------------------------------
 //Send an HTTP POST request every 30 seconds
