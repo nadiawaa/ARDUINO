@@ -4,3 +4,11 @@ This tool monitors three water quality indicators:
 - temperature  
 - humidity  
 - turbidity
+
+The main tools used to develop My I-pond are:
+
+- LoRa
+- temperature sensor
+- humidity sensor
+- turbidity sensor
+- ESP32
